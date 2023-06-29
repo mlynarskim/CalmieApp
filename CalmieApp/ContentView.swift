@@ -197,7 +197,7 @@ struct ContentView: View {
                 if Int(elapsedTime) % 5 == 0 && currentIndex != Int(elapsedTime) / 5 {
                     currentIndex = Int(elapsedTime) / 5 % listWords.count
                     let generator = UINotificationFeedbackGenerator()
-                           generator.notificationOccurred(.success)
+                           generator.notificationOccurred(.warning)
 
                 }
             }
