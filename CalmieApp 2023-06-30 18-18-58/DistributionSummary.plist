@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CalmieApp.ipa</key>
+	<array>
+		<dict>
+			<key>architectures</key>
+			<array>
+				<string>arm64</string>
+			</array>
+			<key>buildNumber</key>
+			<string>8</string>
+			<key>certificate</key>
+			<dict>
+				<key>SHA1</key>
+				<string>88CFC40777600435F85513E1AF29AEBABAC0EA77</string>
+				<key>dateExpires</key>
+				<string>29/06/2024</string>
+				<key>type</key>
+				<string>Cloud Managed Apple Distribution</string>
+			</dict>
+			<key>entitlements</key>
+			<dict>
+				<key>application-identifier</key>
+				<string>3Y79SF4PL3.Mateusz-Mlynarski.CalmieApp</string>
+				<key>beta-reports-active</key>
+				<true/>
+				<key>com.apple.developer.team-identifier</key>
+				<string>3Y79SF4PL3</string>
+				<key>get-task-allow</key>
+				<false/>
+			</dict>
+			<key>name</key>
+			<string>CalmieApp.app</string>
+			<key>profile</key>
+			<dict>
+				<key>UUID</key>
+				<string>32e34ac4-2739-4855-b50e-1800cf1b29ab</string>
+				<key>dateExpires</key>
+				<string>29/06/2024</string>
+				<key>name</key>
+				<string>iOS Team Store Provisioning Profile: Mateusz-Mlynarski.CalmieApp</string>
+			</dict>
+			<key>symbols</key>
+			<true/>
+			<key>team</key>
+			<dict>
+				<key>id</key>
+				<string>3Y79SF4PL3</string>
+				<key>name</key>
+				<string>Mateusz Mlynarski</string>
+			</dict>
+			<key>versionNumber</key>
+			<string>1.0</string>
+		</dict>
+	</array>
+</dict>
+</plist>
