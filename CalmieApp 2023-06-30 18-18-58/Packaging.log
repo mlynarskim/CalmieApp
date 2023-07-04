@@ -60,7 +60,8 @@
 2023-06-30 16:18:40 +0000  Processing symbols for CalmieApp.app
 2023-06-30 16:18:40 +0000  Running /usr/bin/rsync '-8aPhhE' '/var/folders/c3/vqkk3xjx4n17m6k7l3y9f4b00000gn/T/XcodeDistPipeline.~~~qCnseR/Root/Payload/CalmieApp.app' '--link-dest' '/var/folders/c3/vqkk3xjx4n17m6k7l3y9f4b00000gn/T/XcodeDistPipeline.~~~qCnseR/Root/Payload' '/var/folders/c3/vqkk3xjx4n17m6k7l3y9f4b00000gn/T/XcodeDistPipeline.~~~qCnseR'
 2023-06-30 16:18:40 +0000  building file list ... 
-2023-06-30 16:18:40 +0000   0 files...2023-06-30 16:18:40 +0000  15 files to consider
+2023-06-30 16:18:40 +0000   0 files...
+2023-06-30 16:18:40 +0000  15 files to consider
 2023-06-30 16:18:40 +0000  CalmieApp.app/
 2023-06-30 16:18:40 +0000  CalmieApp.app/CalmieApp.momd/
 CalmieApp.app/_CodeSignature/
@@ -70,7 +71,8 @@ total size is 7.01M  speedup is 13767.44
 2023-06-30 16:18:40 +0000  /usr/bin/rsync exited with 0
 2023-06-30 16:18:40 +0000  Running /usr/bin/rsync '-8aPhhE' '/Users/tadzik/Library/Developer/Xcode/Archives/2023-06-30/CalmieApp 30-06-2023, 18.14.xcarchive/dSYMs/' '--link-dest' '/Users/tadzik/Library/Developer/Xcode/Archives/2023-06-30/CalmieApp 30-06-2023, 18.14.xcarchive/dSYMs/' '/var/folders/c3/vqkk3xjx4n17m6k7l3y9f4b00000gn/T/XcodeDistPipeline.~~~qCnseR'
 2023-06-30 16:18:40 +0000  building file list ... 
-2023-06-30 16:18:40 +0000   0 files...2023-06-30 16:18:40 +0000  7 files to consider
+2023-06-30 16:18:40 +0000   0 files...
+2023-06-30 16:18:40 +0000  7 files to consider
 2023-06-30 16:18:40 +0000  ./
 2023-06-30 16:18:40 +0000  CalmieApp.app.dSYM/
 CalmieApp.app.dSYM/Contents/
@@ -138,7 +140,6 @@ Headers:
     "Content-Type" = "text/x-xml-plist";
     "User-Agent" = Xcode;
     "X-Apple-App-Info" = "com.apple.gs.xcode.auth";
-    "X-Apple-GS-Token" = "AAAABLwIAAAAAGSEJQYRDWdzLnhjb2RlLmF1dGi9AJ27ykLW7l8GEvzeQpATkyUGkzfO/VlYMh+sW6HYc96azqF/JhO4737y7MbzJKQQYuJI17tWB6UrrP3KdIGlAOAizj3Kg4mW/XheAaeocMY74047y48sEKcgEzszHmxJMqBs+OutxwOb26V7pBiXZh0GBFnc";
     "X-Apple-I-Client-Time" = "2023-06-30T16:18:40Z";
     "X-Apple-I-Identity-Id" = "001226-08-3ccf3150-b12c-4efd-86f6-61df8174ca19";
     "X-Apple-I-Locale" = "en_PL";
@@ -546,7 +547,8 @@ Payload:
 2023-06-30 16:18:41 +0000  Processing step: IDEDistributionCreateIPAStep
 2023-06-30 16:18:41 +0000  Running /usr/bin/rsync '-8aPhhE' '/var/folders/c3/vqkk3xjx4n17m6k7l3y9f4b00000gn/T/XcodeDistPipeline.~~~qCnseR/Symbols' '--link-dest' '/var/folders/c3/vqkk3xjx4n17m6k7l3y9f4b00000gn/T/XcodeDistPipeline.~~~qCnseR' '/var/folders/c3/vqkk3xjx4n17m6k7l3y9f4b00000gn/T/XcodeDistPipeline.~~~qCnseR/Root'
 2023-06-30 16:18:41 +0000  building file list ... 
-2023-06-30 16:18:41 +0000   0 files...2023-06-30 16:18:41 +0000  2 files to consider
+2023-06-30 16:18:41 +0000   0 files...
+2023-06-30 16:18:41 +0000  2 files to consider
 2023-06-30 16:18:41 +0000  Symbols/
 2023-06-30 16:18:41 +0000  
 2023-06-30 16:18:41 +0000  sent 143 bytes  received 26 bytes  338.00 bytes/sec
