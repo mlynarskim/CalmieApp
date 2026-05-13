@@ -14,6 +14,9 @@
 		07257BCA2A4DC3930015FED4 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 07257BC92A4DC3930015FED4 /* Preview Assets.xcassets */; };
 		07257BD52A4DC4A60015FED4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 07257BD42A4DC4A60015FED4 /* Assets.xcassets */; };
 		07257BDE2A4DCA290015FED4 /* Yoga Style - Chris Haugen.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 07257BDD2A4DCA290015FED4 /* Yoga Style - Chris Haugen.mp3 */; };
+		AA111BC42A4DC3920015FED4 /* StatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA111BC32A4DC3920015FED4 /* StatsView.swift */; };
+		BB222BC42A4DC3920015FED4 /* BreathingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB222BC32A4DC3920015FED4 /* BreathingView.swift */; };
+		CC333BC42A4DC3920015FED4 /* ReminderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC333BC32A4DC3920015FED4 /* ReminderView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -26,6 +29,9 @@
 		07257BC92A4DC3930015FED4 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		07257BD42A4DC4A60015FED4 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		07257BDD2A4DCA290015FED4 /* Yoga Style - Chris Haugen.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = "Yoga Style - Chris Haugen.mp3"; sourceTree = "<group>"; };
+		AA111BC32A4DC3920015FED4 /* StatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsView.swift; sourceTree = "<group>"; };
+		BB222BC32A4DC3920015FED4 /* BreathingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BreathingView.swift; sourceTree = "<group>"; };
+		CC333BC32A4DC3920015FED4 /* ReminderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReminderView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -61,6 +67,9 @@
 				07257BBC2A4DC3920015FED4 /* CalmieAppApp.swift */,
 				07257BBE2A4DC3920015FED4 /* Persistence.swift */,
 				07257BC32A4DC3920015FED4 /* ContentView.swift */,
+				AA111BC32A4DC3920015FED4 /* StatsView.swift */,
+				BB222BC32A4DC3920015FED4 /* BreathingView.swift */,
+				CC333BC32A4DC3920015FED4 /* ReminderView.swift */,
 				07257BDD2A4DCA290015FED4 /* Yoga Style - Chris Haugen.mp3 */,
 				07257BC72A4DC3930015FED4 /* CalmieApp.entitlements */,
 				07257BD42A4DC4A60015FED4 /* Assets.xcassets */,
@@ -153,6 +162,9 @@
 				07257BC22A4DC3920015FED4 /* CalmieApp.xcdatamodeld in Sources */,
 				07257BC42A4DC3920015FED4 /* ContentView.swift in Sources */,
 				07257BBF2A4DC3920015FED4 /* Persistence.swift in Sources */,
+				AA111BC42A4DC3920015FED4 /* StatsView.swift in Sources */,
+				BB222BC42A4DC3920015FED4 /* BreathingView.swift in Sources */,
+				CC333BC42A4DC3920015FED4 /* ReminderView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -278,7 +290,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = CalmieApp/CalmieApp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 7;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"CalmieApp/Preview Content\"";
 				DEVELOPMENT_TEAM = 3Y79SF4PL3;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -296,11 +308,11 @@
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				IPHONEOS_DEPLOYMENT_TARGET = 16.4;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 13.3;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.1;
 				PRODUCT_BUNDLE_IDENTIFIER = "Mateusz-Mlynarski.CalmieApp";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -321,7 +333,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = CalmieApp/CalmieApp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 7;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"CalmieApp/Preview Content\"";
 				DEVELOPMENT_TEAM = 3Y79SF4PL3;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -339,11 +351,11 @@
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				IPHONEOS_DEPLOYMENT_TARGET = 16.4;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 13.3;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.1;
 				PRODUCT_BUNDLE_IDENTIFIER = "Mateusz-Mlynarski.CalmieApp";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
