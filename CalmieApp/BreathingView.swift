@@ -72,6 +72,9 @@ private let techniques: [BreathingTechnique] = [
 struct BreathingView: View {
     @Environment(\.dismiss) private var dismiss
 
+    @AppStorage("breathingSessionCount") private var breathingSessionCount = 0
+    @AppStorage("breathingTotalCycles")  private var breathingTotalCycles  = 0
+
     @State private var selectedIndex = 0
     @State private var isRunning = false
     @State private var phaseIndex = 0
@@ -257,6 +260,10 @@ struct BreathingView: View {
     }
 
     private func stopBreathing() {
+        if cycleCount > 0 {
+            breathingSessionCount += 1
+            breathingTotalCycles  += cycleCount
+        }
         isRunning = false
         activeTimer?.invalidate()
         activeTimer = nil
