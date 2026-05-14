@@ -52,6 +52,7 @@ struct StatsView: View {
     @AppStorage("breathingTotalCycles")  private var breathingTotalCycles  = 0
 
     @State private var badgeIndex: Int = 0
+    @State private var swipeDirection: Int = 1   // 1 = w prawo, -1 = w lewo
     @GestureState private var dragOffset: CGFloat = 0
 
     // MARK: Computed
@@ -101,6 +102,13 @@ struct StatsView: View {
     private func deleteSessions(at offsets: IndexSet) {
         for i in offsets { viewContext.delete(sessions[i]) }
         try? viewContext.save()
+    }
+
+    private func goTo(_ newIndex: Int) {
+        swipeDirection = newIndex > badgeIndex ? 1 : -1
+        withAnimation(.spring(response: 0.38, dampingFraction: 0.72)) {
+            badgeIndex = newIndex
+        }
     }
 
     // MARK: Body
@@ -208,103 +216,124 @@ struct StatsView: View {
     // MARK: - Badge carousel view
 
     private var badgeCarousel: some View {
-        VStack(spacing: 16) {
+        let slideIn  = AnyTransition.asymmetric(
+            insertion:  .offset(x: swipeDirection > 0 ? 60 : -60).combined(with: .opacity),
+            removal:    .offset(x: swipeDirection > 0 ? -60 : 60).combined(with: .opacity)
+        )
+        let sideIn = AnyTransition.asymmetric(
+            insertion:  .offset(x: swipeDirection > 0 ? 30 : -30).combined(with: .opacity),
+            removal:    .offset(x: swipeDirection > 0 ? -30 : 30).combined(with: .opacity)
+        )
+
+        return VStack(spacing: 16) {
             HStack(spacing: 0) {
+
                 // Strzałka lewo
-                Button(action: { withAnimation(.spring()) { badgeIndex = max(0, badgeIndex - 1) } }) {
+                Button(action: { goTo(max(0, badgeIndex - 1)) }) {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 18, weight: .semibold))
                         .foregroundColor(.white.opacity(badgeIndex > 0 ? 0.8 : 0.2))
                         .frame(width: 36, height: 36)
+                        .scaleEffect(badgeIndex > 0 ? 1 : 0.8)
+                        .animation(.spring(response: 0.3, dampingFraction: 0.6), value: badgeIndex)
                 }
                 .disabled(badgeIndex == 0)
 
                 Spacer()
 
-                // Poprzednia odznaka (mała)
-                if badgeIndex > 0 {
-                    smallBadgeView(allBadges[badgeIndex - 1])
-                        .transition(.opacity)
-                } else {
-                    Color.clear.frame(width: 64, height: 64)
+                // Poprzednia odznaka (mała) — przesuwa się przy zmianie
+                Group {
+                    if badgeIndex > 0 {
+                        smallBadgeView(allBadges[badgeIndex - 1])
+                            .id("left-\(badgeIndex)")
+                            .transition(sideIn)
+                    } else {
+                        Color.clear.frame(width: 64, height: 80)
+                    }
                 }
+                .frame(width: 64)
 
                 Spacer()
 
-                // Główna odznaka (duża z pierścieniem)
+                // Główna odznaka — wjeżdża z kierunku swipe'u
                 largeBadgeView(allBadges[badgeIndex])
+                    .id("center-\(badgeIndex)")
+                    .transition(slideIn)
 
                 Spacer()
 
                 // Następna odznaka (mała)
-                if badgeIndex < allBadges.count - 1 {
-                    smallBadgeView(allBadges[badgeIndex + 1])
-                        .transition(.opacity)
-                } else {
-                    Color.clear.frame(width: 64, height: 64)
+                Group {
+                    if badgeIndex < allBadges.count - 1 {
+                        smallBadgeView(allBadges[badgeIndex + 1])
+                            .id("right-\(badgeIndex)")
+                            .transition(sideIn)
+                    } else {
+                        Color.clear.frame(width: 64, height: 80)
+                    }
                 }
+                .frame(width: 64)
 
                 Spacer()
 
                 // Strzałka prawo
-                Button(action: { withAnimation(.spring()) { badgeIndex = min(allBadges.count - 1, badgeIndex + 1) } }) {
+                Button(action: { goTo(min(allBadges.count - 1, badgeIndex + 1)) }) {
                     Image(systemName: "chevron.right")
                         .font(.system(size: 18, weight: .semibold))
                         .foregroundColor(.white.opacity(badgeIndex < allBadges.count - 1 ? 0.8 : 0.2))
                         .frame(width: 36, height: 36)
+                        .scaleEffect(badgeIndex < allBadges.count - 1 ? 1 : 0.8)
+                        .animation(.spring(response: 0.3, dampingFraction: 0.6), value: badgeIndex)
                 }
                 .disabled(badgeIndex == allBadges.count - 1)
             }
-            // Swipe gesture
             .gesture(
                 DragGesture(minimumDistance: 30)
                     .onEnded { val in
-                        withAnimation(.spring()) {
-                            if val.translation.width < 0 {
-                                badgeIndex = min(allBadges.count - 1, badgeIndex + 1)
-                            } else {
-                                badgeIndex = max(0, badgeIndex - 1)
-                            }
+                        if val.translation.width < 0 {
+                            goTo(min(allBadges.count - 1, badgeIndex + 1))
+                        } else {
+                            goTo(max(0, badgeIndex - 1))
                         }
                     }
             )
 
-            // Nazwa odznaki
+            // Nazwa — zmienia się z delikatnym fade + przesunięciem
             Text(allBadges[badgeIndex].name)
                 .font(.system(size: 20, weight: .bold))
                 .foregroundColor(.white)
-                .animation(.none, value: badgeIndex)
+                .id("name-\(badgeIndex)")
+                .transition(.asymmetric(
+                    insertion:  .offset(y: 8).combined(with: .opacity),
+                    removal:    .offset(y: -8).combined(with: .opacity)
+                ))
 
-            // Opis / next badge info
+            // Opis / next badge
             let shown = allBadges[badgeIndex]
-            if isUnlocked(shown) {
-                // Pokaż info o następnej
-                if let nextIdx = allBadges.indices.dropFirst(badgeIndex + 1).first {
-                    let next = allBadges[nextIdx]
-                    Text("NEXT BADGE: \(next.sessions) SESSIONS")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(.white.opacity(0.45))
-                        .tracking(1)
+            Group {
+                if isUnlocked(shown) {
+                    if let nextIdx = allBadges.indices.dropFirst(badgeIndex + 1).first {
+                        Text("NEXT BADGE: \(allBadges[nextIdx].sessions) SESSIONS")
+                    } else {
+                        Text("ALL BADGES UNLOCKED 🌟")
+                    }
                 } else {
-                    Text("ALL BADGES UNLOCKED 🌟")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(.white.opacity(0.45))
-                        .tracking(1)
+                    Text("UNLOCK AT \(shown.sessions) SESSIONS")
                 }
-            } else {
-                Text("UNLOCK AT \(shown.sessions) SESSIONS")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.45))
-                    .tracking(1)
             }
+            .font(.system(size: 11, weight: .semibold))
+            .foregroundColor(.white.opacity(0.45))
+            .tracking(1)
+            .id("sub-\(badgeIndex)")
+            .transition(.opacity)
 
-            // Dots indicator
+            // Dots — aktywna powiększa się
             HStack(spacing: 5) {
                 ForEach(allBadges.indices, id: \.self) { i in
-                    Circle()
+                    RoundedRectangle(cornerRadius: 3)
                         .fill(i == badgeIndex ? Color.white : Color.white.opacity(0.25))
-                        .frame(width: i == badgeIndex ? 7 : 5, height: i == badgeIndex ? 7 : 5)
-                        .animation(.spring(), value: badgeIndex)
+                        .frame(width: i == badgeIndex ? 18 : 6, height: 6)
+                        .animation(.spring(response: 0.35, dampingFraction: 0.65), value: badgeIndex)
                 }
             }
             .padding(.bottom, 4)
@@ -312,6 +341,7 @@ struct StatsView: View {
         .padding(.vertical, 24)
         .background(Color.white.opacity(0.12))
         .cornerRadius(20)
+        .animation(.spring(response: 0.38, dampingFraction: 0.72), value: badgeIndex)
     }
 
     // MARK: Large badge (center)
@@ -333,18 +363,19 @@ struct StatsView: View {
                 .foregroundColor(Color(red: 185/255, green: 106/255, blue: 102/255))
                 .rotationEffect(.degrees(-90))
                 .frame(width: 120, height: 120)
-                .animation(.easeInOut(duration: 0.6), value: progress)
+                .animation(.easeInOut(duration: 0.5), value: progress)
 
-            // Wypełnienie koła
+            // Wypełnienie
             Circle()
                 .fill(unlocked ? Color.white.opacity(0.18) : Color.white.opacity(0.06))
                 .frame(width: 104, height: 104)
 
-            // Emoji
+            // Emoji — wskakuje z lekkim bounce
             Text(unlocked ? badge.emoji : "🔒")
                 .font(.system(size: 48))
                 .grayscale(unlocked ? 0 : 1)
                 .opacity(unlocked ? 1 : 0.4)
+                .scaleEffect(1.0)   // anchor dla transition
         }
     }
 
