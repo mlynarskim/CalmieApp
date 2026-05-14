@@ -24,7 +24,7 @@ private let techniques: [BreathingTechnique] = [
     BreathingTechnique(
         name: "Box",
         subtitle: "4 · 4 · 4 · 4",
-        description: "Równomierne fale oddechu — redukuje stres i wycisza układ nerwowy.",
+        description: "Equal waves of breath — reduces stress and calms the nervous system.",
         accentColor: Color(red: 0.255, green: 0.452, blue: 0.428),
         phases: [
             BreathPhaseStep(label: "Inhale",  duration: 4, expanding: true),
@@ -36,7 +36,7 @@ private let techniques: [BreathingTechnique] = [
     BreathingTechnique(
         name: "4-7-8",
         subtitle: "4 · 7 · 8",
-        description: "Technika Dr. Weila — uspokaja przed snem i przy stanach lękowych.",
+        description: "Dr. Weil's technique — calms anxiety and helps you fall asleep faster.",
         accentColor: Color(red: 0.25, green: 0.35, blue: 0.60),
         phases: [
             BreathPhaseStep(label: "Inhale",  duration: 4, expanding: true),
@@ -47,7 +47,7 @@ private let techniques: [BreathingTechnique] = [
     BreathingTechnique(
         name: "Coherent",
         subtitle: "5 · 5",
-        description: "Spójny oddech — synchronizuje rytm serca i oddech, ideał na co dzień.",
+        description: "Syncs your heart rate and breath — great for everyday use and balance.",
         accentColor: Color(red: 0.55, green: 0.35, blue: 0.20),
         phases: [
             BreathPhaseStep(label: "Inhale",  duration: 5, expanding: true),
@@ -57,7 +57,7 @@ private let techniques: [BreathingTechnique] = [
     BreathingTechnique(
         name: "Triangle",
         subtitle: "4 · 4 · 4",
-        description: "Trójkąt oddechu — zwiększa koncentrację i klarowność umysłu.",
+        description: "Triangle breath — boosts focus and brings mental clarity.",
         accentColor: Color(red: 0.50, green: 0.25, blue: 0.45),
         phases: [
             BreathPhaseStep(label: "Inhale",  duration: 4, expanding: true),
