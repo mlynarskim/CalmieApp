@@ -4,6 +4,7 @@
 import AVFoundation
 import SwiftUI
 import CoreData
+import UserNotifications
 
 struct HoldButton: View {
     let systemImage: String
@@ -34,6 +35,7 @@ struct HoldButton: View {
 
 struct ContentView: View {
     @Environment(\.managedObjectContext) private var viewContext
+    @Environment(\.scenePhase) private var scenePhase
 
     @State private var isCountingDown = false
     @State private var isPaused = false
@@ -47,7 +49,11 @@ struct ContentView: View {
     @State private var showBreathing = false
     @State private var showReminder = false
     @State private var activeTimer: Timer?
-    @State private var remainingTime: TimeInterval = 0
+
+    // Przechowujemy datę końca sesji — timer liczy od zegara, nie od tików
+    @State private var sessionEndDate: Date?
+    // Używane przy pauzie — ile czasu pozostało
+    @State private var pausedRemaining: TimeInterval = 0
 
     private var countdownDuration: TimeInterval {
         TimeInterval(selectedTime * 60)
@@ -64,7 +70,6 @@ struct ContentView: View {
 
     var body: some View {
         ZStack {
-            // Tło
             LinearGradient(
                 gradient: Gradient(colors: [
                     Color(red: 65/255, green: 55/255, blue: 86/255),
@@ -75,7 +80,7 @@ struct ContentView: View {
             )
             .edgesIgnoringSafeArea(.all)
 
-            // Ripple + przycisk — oba na środku ekranu
+            // Ripple + przycisk na środku ekranu
             ZStack {
                 ForEach(1...5, id: \.self) { index in
                     Circle()
@@ -126,7 +131,7 @@ struct ContentView: View {
                 .shadow(color: Color.black.opacity(0.2), radius: 5, x: 0, y: 2)
             }
         }
-        // Top bar przylepiony do góry
+        // Top bar
         .overlay(alignment: .top) {
             HStack {
                 Button(action: { showStats = true }) {
@@ -144,7 +149,7 @@ struct ContentView: View {
             .padding(.horizontal, 20)
             .padding(.top, 20)
         }
-        // Dolne kontrolki przylepione do dołu
+        // Dolne kontrolki
         .overlay(alignment: .bottom) {
             VStack(spacing: 20) {
                 if isCountingDown {
@@ -224,28 +229,43 @@ struct ContentView: View {
             StatsView()
                 .environment(\.managedObjectContext, viewContext)
         }
+        // Powrót z tła — synchronizuj timer z zegarem
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active {
+                if isCountingDown && !isPaused {
+                    runTimer()
+                }
+            } else if phase == .background {
+                // Zatrzymaj UI-timer — nie potrzebny w tle
+                activeTimer?.invalidate()
+            }
+        }
     }
+
+    // MARK: - Timer
 
     private func startCountdown() {
         isCountingDown = true
         isPaused = false
-        remainingTime = countdownDuration
+        sessionEndDate = Date().addingTimeInterval(countdownDuration)
+        scheduleEndNotification(after: countdownDuration)
+        UIApplication.shared.isIdleTimerDisabled = true
         runTimer()
     }
 
     private func runTimer() {
         activeTimer?.invalidate()
-        activeTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { timer in
-            guard remainingTime > 0 else {
+        activeTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { timer in
+            guard let endDate = sessionEndDate else { timer.invalidate(); return }
+            let remaining = endDate.timeIntervalSinceNow
+            guard remaining > 0 else {
                 timer.invalidate()
                 saveSession(duration: selectedTime)
                 resetCountdown()
                 return
             }
-            remainingTime -= 0.1
-            progress = CGFloat(remainingTime / countdownDuration)
-
-            let elapsed = countdownDuration - remainingTime
+            progress = CGFloat(remaining / countdownDuration)
+            let elapsed = countdownDuration - remaining
             let wordIndex = Int(elapsed) / 5
             if wordIndex != currentIndex {
                 currentIndex = wordIndex % listWords.count
@@ -256,17 +276,25 @@ struct ContentView: View {
     private func pauseCountdown() {
         isPaused = true
         activeTimer?.invalidate()
+        pausedRemaining = sessionEndDate?.timeIntervalSinceNow ?? 0
+        sessionEndDate = nil
         sound?.pause()
+        cancelEndNotification()
+        UIApplication.shared.isIdleTimerDisabled = false
     }
 
     private func resumeCountdown() {
         isPaused = false
+        sessionEndDate = Date().addingTimeInterval(pausedRemaining)
+        scheduleEndNotification(after: pausedRemaining)
         sound?.play()
+        UIApplication.shared.isIdleTimerDisabled = true
         runTimer()
     }
 
     private func stopCountdown() {
         activeTimer?.invalidate()
+        cancelEndNotification()
         resetCountdown()
     }
 
@@ -275,13 +303,36 @@ struct ContentView: View {
         isPaused = false
         isButtonBlocked = false
         progress = 0.0
-        remainingTime = 0
         currentIndex = 0
+        sessionEndDate = nil
+        pausedRemaining = 0
         ripple = false
         sound?.stop()
+        UIApplication.shared.isIdleTimerDisabled = false
         let generator = UINotificationFeedbackGenerator()
         generator.notificationOccurred(.success)
     }
+
+    // MARK: - Notifications
+
+    private func scheduleEndNotification(after interval: TimeInterval) {
+        let center = UNUserNotificationCenter.current()
+        center.removePendingNotificationRequests(withIdentifiers: ["session_end"])
+        let content = UNMutableNotificationContent()
+        content.title = "Session complete 🧘"
+        content.body = "Great job! Your meditation session is done."
+        content.sound = .default
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(interval, 1), repeats: false)
+        let request = UNNotificationRequest(identifier: "session_end", content: content, trigger: trigger)
+        center.add(request)
+    }
+
+    private func cancelEndNotification() {
+        UNUserNotificationCenter.current()
+            .removePendingNotificationRequests(withIdentifiers: ["session_end"])
+    }
+
+    // MARK: - Audio
 
     private func saveSession(duration: Int) {
         let session = MeditationSession(context: viewContext)
