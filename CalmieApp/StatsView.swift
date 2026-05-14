@@ -52,8 +52,9 @@ struct StatsView: View {
     @AppStorage("breathingTotalCycles")  private var breathingTotalCycles  = 0
 
     @State private var badgeIndex: Int = 0
-    @State private var swipeDirection: Int = 1   // 1 = w prawo, -1 = w lewo
+    @State private var swipeDirection: Int = 1
     @GestureState private var dragOffset: CGFloat = 0
+    @State private var historyExpanded = false
 
     // MARK: Computed
 
@@ -135,12 +136,13 @@ struct StatsView: View {
                                 .foregroundColor(.white)
                                 .font(.system(size: 18, weight: .bold))
                         }
+                        .padding(.leading, 8)
                         Spacer()
                         Text("Your Progress")
                             .foregroundColor(.white)
                             .font(.system(size: 20, weight: .bold))
                         Spacer()
-                        Color.clear.frame(width: 18, height: 18)
+                        Color.clear.frame(width: 26, height: 18)
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 20)
@@ -165,44 +167,76 @@ struct StatsView: View {
                         footer: nil
                     )
 
-                    // MARK: Session history
-                    if !sessions.isEmpty {
-                        VStack(alignment: .leading, spacing: 0) {
+                    // MARK: Session history (rozwijana)
+                    VStack(alignment: .leading, spacing: 0) {
+                        // Nagłówek — klik rozwija/zwija
+                        Button(action: {
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                                historyExpanded.toggle()
+                            }
+                        }) {
                             HStack {
                                 Text("History")
                                     .font(.system(size: 13, weight: .semibold))
                                     .foregroundColor(.white.opacity(0.5))
+                                if !sessions.isEmpty {
+                                    Text("(\(sessions.count))")
+                                        .font(.system(size: 13))
+                                        .foregroundColor(.white.opacity(0.3))
+                                }
                                 Spacer()
-                                Text("← swipe to delete")
-                                    .font(.system(size: 12))
-                                    .foregroundColor(.white.opacity(0.3))
+                                if sessions.isEmpty {
+                                    Text("No sessions yet")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(.white.opacity(0.3))
+                                } else {
+                                    Image(systemName: "chevron.down")
+                                        .font(.system(size: 12, weight: .semibold))
+                                        .foregroundColor(.white.opacity(0.4))
+                                        .rotationEffect(.degrees(historyExpanded ? 180 : 0))
+                                        .animation(.spring(response: 0.35, dampingFraction: 0.75), value: historyExpanded)
+                                }
                             }
                             .padding(.horizontal, 16)
-                            .padding(.top, 16)
-                            .padding(.bottom, 4)
+                            .padding(.vertical, 16)
+                        }
+                        .disabled(sessions.isEmpty)
+
+                        // Rozwijana lista
+                        if historyExpanded && !sessions.isEmpty {
+                            Divider()
+                                .background(Color.white.opacity(0.15))
+                                .padding(.horizontal, 12)
+
+                            HStack {
+                                Spacer()
+                                Text("← swipe to delete")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.white.opacity(0.25))
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.top, 6)
+                            .padding(.bottom, 2)
 
                             List {
                                 ForEach(sessions) { session in
                                     SessionRow(session: session)
                                         .listRowBackground(Color.clear)
-                                        .listRowSeparatorTint(Color.white.opacity(0.15))
+                                        .listRowSeparatorTint(Color.white.opacity(0.12))
                                         .listRowInsets(EdgeInsets())
                                 }
                                 .onDelete(perform: deleteSessions)
                             }
                             .listStyle(.plain)
                             .scrollContentBackground(.hidden)
-                            .frame(maxHeight: 280)
+                            .frame(height: min(CGFloat(sessions.count) * 52, 300))
+                            .transition(.opacity.combined(with: .move(edge: .top)))
                         }
-                        .background(Color.white.opacity(0.12))
-                        .cornerRadius(20)
-                        .padding(.horizontal, 20)
-                    } else {
-                        Text("No sessions yet.\nComplete your first meditation!")
-                            .multilineTextAlignment(.center)
-                            .foregroundColor(.white.opacity(0.5))
-                            .font(.system(size: 15))
                     }
+                    .background(Color.white.opacity(0.12))
+                    .cornerRadius(20)
+                    .padding(.horizontal, 20)
+                    .clipped()
 
                     Spacer(minLength: 30)
                 }
