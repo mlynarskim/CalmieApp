@@ -10,30 +10,31 @@ struct MeditationBadge: Identifiable {
     let id = UUID()
     let emoji: String
     let name: String
-    let sessions: Int   // sessions needed to unlock
+    let sessions: Int       // 0 = zawsze odblokowana (welcome)
+    let label: String       // opis pod odznaką np. "Welcome", "1 session"
 }
 
 private let allBadges: [MeditationBadge] = [
-    MeditationBadge(emoji: "🌱", name: "First Breath",    sessions: 1),
-    MeditationBadge(emoji: "🌿", name: "Seedling",        sessions: 3),
-    MeditationBadge(emoji: "🧘", name: "Meditator",       sessions: 5),
-    MeditationBadge(emoji: "🌸", name: "Blooming",        sessions: 7),
-    MeditationBadge(emoji: "💧", name: "Flow State",      sessions: 10),
-    MeditationBadge(emoji: "🌊", name: "Deep Water",      sessions: 15),
-    MeditationBadge(emoji: "🍃", name: "Leaf",            sessions: 20),
-    MeditationBadge(emoji: "☀️", name: "Sunrise",         sessions: 25),
-    MeditationBadge(emoji: "🔥", name: "On Fire",         sessions: 30),
-    MeditationBadge(emoji: "🌙", name: "Moonrise",        sessions: 40),
-    MeditationBadge(emoji: "🦋", name: "Butterfly",       sessions: 50),
-    MeditationBadge(emoji: "🌳", name: "Tree",            sessions: 60),
-    MeditationBadge(emoji: "✨", name: "Glow",            sessions: 75),
-    MeditationBadge(emoji: "🏔️", name: "Mountain",       sessions: 100),
-    MeditationBadge(emoji: "🌺", name: "Lotus",           sessions: 120),
-    MeditationBadge(emoji: "🌌", name: "Galaxy",          sessions: 150),
-    MeditationBadge(emoji: "🧠", name: "Mind Master",     sessions: 175),
-    MeditationBadge(emoji: "💫", name: "Enlightened",     sessions: 200),
-    MeditationBadge(emoji: "🕊️", name: "Inner Peace",    sessions: 300),
-    MeditationBadge(emoji: "🌟", name: "Year of Zen",     sessions: 365),
+    MeditationBadge(emoji: "🌱", name: "First Breath",  sessions: 0,   label: "Welcome"),
+    MeditationBadge(emoji: "🌿", name: "Seedling",      sessions: 1,   label: "1 session"),
+    MeditationBadge(emoji: "🧘", name: "Meditator",     sessions: 3,   label: "3 sessions"),
+    MeditationBadge(emoji: "🌸", name: "Blooming",      sessions: 5,   label: "5 sessions"),
+    MeditationBadge(emoji: "💧", name: "Flow State",    sessions: 7,   label: "7 sessions"),
+    MeditationBadge(emoji: "🌊", name: "Deep Water",    sessions: 10,  label: "10 sessions"),
+    MeditationBadge(emoji: "🍃", name: "Leaf",          sessions: 15,  label: "15 sessions"),
+    MeditationBadge(emoji: "☀️", name: "Sunrise",       sessions: 20,  label: "20 sessions"),
+    MeditationBadge(emoji: "🔥", name: "On Fire",       sessions: 25,  label: "25 sessions"),
+    MeditationBadge(emoji: "🌙", name: "Moonrise",      sessions: 30,  label: "30 sessions"),
+    MeditationBadge(emoji: "🦋", name: "Butterfly",     sessions: 40,  label: "40 sessions"),
+    MeditationBadge(emoji: "🌳", name: "Tree",          sessions: 50,  label: "50 sessions"),
+    MeditationBadge(emoji: "✨", name: "Glow",          sessions: 60,  label: "60 sessions"),
+    MeditationBadge(emoji: "🏔️", name: "Mountain",     sessions: 75,  label: "75 sessions"),
+    MeditationBadge(emoji: "🌺", name: "Lotus",         sessions: 100, label: "100 sessions"),
+    MeditationBadge(emoji: "🌌", name: "Galaxy",        sessions: 120, label: "120 sessions"),
+    MeditationBadge(emoji: "🧠", name: "Mind Master",   sessions: 150, label: "150 sessions"),
+    MeditationBadge(emoji: "💫", name: "Enlightened",   sessions: 200, label: "200 sessions"),
+    MeditationBadge(emoji: "🕊️", name: "Inner Peace",  sessions: 300, label: "300 sessions"),
+    MeditationBadge(emoji: "🌟", name: "Year of Zen",   sessions: 365, label: "365 sessions"),
 ]
 
 // MARK: - StatsView
@@ -50,6 +51,9 @@ struct StatsView: View {
     @AppStorage("breathingSessionCount") private var breathingSessionCount = 0
     @AppStorage("breathingTotalCycles")  private var breathingTotalCycles  = 0
 
+    @State private var badgeIndex: Int = 0
+    @GestureState private var dragOffset: CGFloat = 0
+
     // MARK: Computed
 
     private var totalSessions: Int { sessions.count }
@@ -61,9 +65,8 @@ struct StatsView: View {
         guard !days.isEmpty else { return 0 }
         let today = cal.startOfDay(for: Date())
         let yesterday = cal.date(byAdding: .day, value: -1, to: today)!
-        var check = days.contains(today) ? today : days.contains(yesterday) ? yesterday : nil
-        guard var d = check else { return 0 }
-        var streak = 0
+        guard let start = days.contains(today) ? today : days.contains(yesterday) ? yesterday : nil else { return 0 }
+        var d = start; var streak = 0
         while days.contains(d) {
             streak += 1
             guard let prev = cal.date(byAdding: .day, value: -1, to: d) else { break }
@@ -72,14 +75,27 @@ struct StatsView: View {
         return streak
     }
 
-    private var unlockedBadges: [MeditationBadge] {
-        allBadges.filter { totalSessions >= $0.sessions }
+    /// Indeks najwyżej odblokowanej odznaki
+    private var highestUnlockedIndex: Int {
+        var best = 0
+        for (i, b) in allBadges.enumerated() {
+            if totalSessions >= b.sessions { best = i }
+        }
+        return best
     }
 
-    private var currentBadge: MeditationBadge? { unlockedBadges.last }
+    /// Postęp do następnej odznaki (0…1) dla aktualnie wyświetlanej
+    private func progressForBadge(at idx: Int) -> CGFloat {
+        let badge = allBadges[idx]
+        guard totalSessions >= badge.sessions else { return 0 }
+        guard let next = allBadges.indices.dropFirst(idx + 1).first.map({ allBadges[$0] }) else { return 1 }
+        let range = CGFloat(next.sessions - badge.sessions)
+        let done  = CGFloat(totalSessions - badge.sessions)
+        return min(done / range, 1)
+    }
 
-    private var nextBadge: MeditationBadge? {
-        allBadges.first { totalSessions < $0.sessions }
+    private func isUnlocked(_ badge: MeditationBadge) -> Bool {
+        totalSessions >= badge.sessions
     }
 
     private func deleteSessions(at offsets: IndexSet) {
@@ -121,144 +137,37 @@ struct StatsView: View {
                     .padding(.horizontal, 20)
                     .padding(.top, 20)
 
-                    // MARK: Streak
-                    VStack(spacing: 4) {
-                        Text("🔥")
-                            .font(.system(size: 44))
-                        Text("\(currentStreak)")
-                            .font(.system(size: 64, weight: .bold))
-                            .foregroundColor(.white)
-                        Text(currentStreak == 1 ? "day streak" : "day streak")
-                            .font(.system(size: 16))
-                            .foregroundColor(.white.opacity(0.7))
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 24)
-                    .background(Color.white.opacity(0.12))
-                    .cornerRadius(20)
-                    .padding(.horizontal, 20)
-
-                    // MARK: Badges
-                    VStack(spacing: 14) {
-                        // Current badge hero
-                        if let badge = currentBadge {
-                            VStack(spacing: 6) {
-                                Text(badge.emoji)
-                                    .font(.system(size: 64))
-                                Text(badge.name)
-                                    .font(.system(size: 18, weight: .bold))
-                                    .foregroundColor(.white)
-                                if let next = nextBadge {
-                                    Text("NEXT BADGE: \(next.sessions) SESSIONS")
-                                        .font(.system(size: 11, weight: .semibold))
-                                        .foregroundColor(.white.opacity(0.45))
-                                        .tracking(1)
-                                } else {
-                                    Text("ALL BADGES UNLOCKED 🌟")
-                                        .font(.system(size: 11, weight: .semibold))
-                                        .foregroundColor(.white.opacity(0.45))
-                                        .tracking(1)
-                                }
-                            }
-                        } else {
-                            VStack(spacing: 6) {
-                                Text("🔒")
-                                    .font(.system(size: 64))
-                                Text("No badge yet")
-                                    .font(.system(size: 18, weight: .bold))
-                                    .foregroundColor(.white)
-                                Text("FIRST BADGE: 1 SESSION")
-                                    .font(.system(size: 11, weight: .semibold))
-                                    .foregroundColor(.white.opacity(0.45))
-                                    .tracking(1)
-                            }
-                        }
-
-                        // Grid wszystkich odznak
-                        LazyVGrid(
-                            columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 5),
-                            spacing: 12
-                        ) {
-                            ForEach(allBadges) { badge in
-                                let unlocked = totalSessions >= badge.sessions
-                                VStack(spacing: 4) {
-                                    ZStack {
-                                        Circle()
-                                            .fill(unlocked
-                                                  ? Color.white.opacity(0.18)
-                                                  : Color.white.opacity(0.06))
-                                            .frame(width: 52, height: 52)
-                                        Text(unlocked ? badge.emoji : "🔒")
-                                            .font(.system(size: unlocked ? 26 : 20))
-                                            .grayscale(unlocked ? 0 : 1)
-                                            .opacity(unlocked ? 1 : 0.4)
-                                    }
-                                    Text("\(badge.sessions)")
-                                        .font(.system(size: 10))
-                                        .foregroundColor(unlocked
-                                                         ? .white.opacity(0.7)
-                                                         : .white.opacity(0.25))
-                                }
-                            }
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 16)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.top, 20)
-                    .background(Color.white.opacity(0.12))
-                    .cornerRadius(20)
-                    .padding(.horizontal, 20)
+                    // MARK: Badge carousel
+                    badgeCarousel
+                        .padding(.horizontal, 20)
 
                     // MARK: Meditation stats
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Meditation")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(.white.opacity(0.5))
-                            .padding(.horizontal, 16)
-                            .padding(.top, 16)
-
-                        HStack(spacing: 0) {
-                            StatCell(value: "\(totalSessions)", label: "Sessions")
-                            Divider().frame(width: 1).background(Color.white.opacity(0.15))
-                            StatCell(value: "\(totalMinutes)", label: "Minutes")
-                        }
-                        .padding(.bottom, 16)
-                    }
-                    .background(Color.white.opacity(0.12))
-                    .cornerRadius(20)
-                    .padding(.horizontal, 20)
+                    statsCard(
+                        title: "Meditation",
+                        left: (value: "\(totalSessions)", label: "Sessions"),
+                        right: (value: "\(totalMinutes)", label: "Minutes"),
+                        footer: "🔥 \(currentStreak) day streak"
+                    )
 
                     // MARK: Breathing stats
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Breathing")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(.white.opacity(0.5))
-                            .padding(.horizontal, 16)
-                            .padding(.top, 16)
+                    statsCard(
+                        title: "Breathing",
+                        left: (value: "\(breathingSessionCount)", label: "Sessions"),
+                        right: (value: "\(breathingTotalCycles)", label: "Cycles"),
+                        footer: nil
+                    )
 
-                        HStack(spacing: 0) {
-                            StatCell(value: "\(breathingSessionCount)", label: "Sessions")
-                            Divider().frame(width: 1).background(Color.white.opacity(0.15))
-                            StatCell(value: "\(breathingTotalCycles)", label: "Cycles")
-                        }
-                        .padding(.bottom, 16)
-                    }
-                    .background(Color.white.opacity(0.12))
-                    .cornerRadius(20)
-                    .padding(.horizontal, 20)
-
-                    // MARK: History
+                    // MARK: Session history
                     if !sessions.isEmpty {
                         VStack(alignment: .leading, spacing: 0) {
                             HStack {
-                                Text("Sessions")
-                                    .font(.system(size: 14, weight: .semibold))
-                                    .foregroundColor(.white.opacity(0.6))
+                                Text("History")
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundColor(.white.opacity(0.5))
                                 Spacer()
                                 Text("← swipe to delete")
                                     .font(.system(size: 12))
-                                    .foregroundColor(.white.opacity(0.35))
+                                    .foregroundColor(.white.opacity(0.3))
                             }
                             .padding(.horizontal, 16)
                             .padding(.top, 16)
@@ -285,13 +194,225 @@ struct StatsView: View {
                             .multilineTextAlignment(.center)
                             .foregroundColor(.white.opacity(0.5))
                             .font(.system(size: 15))
-                            .padding(.top, 4)
                     }
 
                     Spacer(minLength: 30)
                 }
             }
         }
+        .onAppear {
+            badgeIndex = highestUnlockedIndex
+        }
+    }
+
+    // MARK: - Badge carousel view
+
+    private var badgeCarousel: some View {
+        VStack(spacing: 16) {
+            HStack(spacing: 0) {
+                // Strzałka lewo
+                Button(action: { withAnimation(.spring()) { badgeIndex = max(0, badgeIndex - 1) } }) {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(.white.opacity(badgeIndex > 0 ? 0.8 : 0.2))
+                        .frame(width: 36, height: 36)
+                }
+                .disabled(badgeIndex == 0)
+
+                Spacer()
+
+                // Poprzednia odznaka (mała)
+                if badgeIndex > 0 {
+                    smallBadgeView(allBadges[badgeIndex - 1])
+                        .transition(.opacity)
+                } else {
+                    Color.clear.frame(width: 64, height: 64)
+                }
+
+                Spacer()
+
+                // Główna odznaka (duża z pierścieniem)
+                largeBadgeView(allBadges[badgeIndex])
+
+                Spacer()
+
+                // Następna odznaka (mała)
+                if badgeIndex < allBadges.count - 1 {
+                    smallBadgeView(allBadges[badgeIndex + 1])
+                        .transition(.opacity)
+                } else {
+                    Color.clear.frame(width: 64, height: 64)
+                }
+
+                Spacer()
+
+                // Strzałka prawo
+                Button(action: { withAnimation(.spring()) { badgeIndex = min(allBadges.count - 1, badgeIndex + 1) } }) {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(.white.opacity(badgeIndex < allBadges.count - 1 ? 0.8 : 0.2))
+                        .frame(width: 36, height: 36)
+                }
+                .disabled(badgeIndex == allBadges.count - 1)
+            }
+            // Swipe gesture
+            .gesture(
+                DragGesture(minimumDistance: 30)
+                    .onEnded { val in
+                        withAnimation(.spring()) {
+                            if val.translation.width < 0 {
+                                badgeIndex = min(allBadges.count - 1, badgeIndex + 1)
+                            } else {
+                                badgeIndex = max(0, badgeIndex - 1)
+                            }
+                        }
+                    }
+            )
+
+            // Nazwa odznaki
+            Text(allBadges[badgeIndex].name)
+                .font(.system(size: 20, weight: .bold))
+                .foregroundColor(.white)
+                .animation(.none, value: badgeIndex)
+
+            // Opis / next badge info
+            let shown = allBadges[badgeIndex]
+            if isUnlocked(shown) {
+                // Pokaż info o następnej
+                if let nextIdx = allBadges.indices.dropFirst(badgeIndex + 1).first {
+                    let next = allBadges[nextIdx]
+                    Text("NEXT BADGE: \(next.sessions) SESSIONS")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.45))
+                        .tracking(1)
+                } else {
+                    Text("ALL BADGES UNLOCKED 🌟")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.45))
+                        .tracking(1)
+                }
+            } else {
+                Text("UNLOCK AT \(shown.sessions) SESSIONS")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.45))
+                    .tracking(1)
+            }
+
+            // Dots indicator
+            HStack(spacing: 5) {
+                ForEach(allBadges.indices, id: \.self) { i in
+                    Circle()
+                        .fill(i == badgeIndex ? Color.white : Color.white.opacity(0.25))
+                        .frame(width: i == badgeIndex ? 7 : 5, height: i == badgeIndex ? 7 : 5)
+                        .animation(.spring(), value: badgeIndex)
+                }
+            }
+            .padding(.bottom, 4)
+        }
+        .padding(.vertical, 24)
+        .background(Color.white.opacity(0.12))
+        .cornerRadius(20)
+    }
+
+    // MARK: Large badge (center)
+
+    private func largeBadgeView(_ badge: MeditationBadge) -> some View {
+        let unlocked = isUnlocked(badge)
+        let progress = progressForBadge(at: allBadges.firstIndex(where: { $0.id == badge.id }) ?? 0)
+
+        return ZStack {
+            // Tło koła
+            Circle()
+                .stroke(Color.white.opacity(0.15), lineWidth: 6)
+                .frame(width: 120, height: 120)
+
+            // Pierścień postępu
+            Circle()
+                .trim(from: 0, to: unlocked ? progress : 0)
+                .stroke(style: StrokeStyle(lineWidth: 6, lineCap: .round))
+                .foregroundColor(Color(red: 185/255, green: 106/255, blue: 102/255))
+                .rotationEffect(.degrees(-90))
+                .frame(width: 120, height: 120)
+                .animation(.easeInOut(duration: 0.6), value: progress)
+
+            // Wypełnienie koła
+            Circle()
+                .fill(unlocked ? Color.white.opacity(0.18) : Color.white.opacity(0.06))
+                .frame(width: 104, height: 104)
+
+            // Emoji
+            Text(unlocked ? badge.emoji : "🔒")
+                .font(.system(size: 48))
+                .grayscale(unlocked ? 0 : 1)
+                .opacity(unlocked ? 1 : 0.4)
+        }
+    }
+
+    // MARK: Small badge (boki)
+
+    private func smallBadgeView(_ badge: MeditationBadge) -> some View {
+        let unlocked = isUnlocked(badge)
+        return VStack(spacing: 4) {
+            ZStack {
+                Circle()
+                    .fill(unlocked ? Color.white.opacity(0.14) : Color.white.opacity(0.05))
+                    .frame(width: 64, height: 64)
+                Text(unlocked ? badge.emoji : "🔒")
+                    .font(.system(size: 26))
+                    .grayscale(unlocked ? 0 : 1)
+                    .opacity(unlocked ? 0.85 : 0.3)
+            }
+            Text(badge.label)
+                .font(.system(size: 10))
+                .foregroundColor(.white.opacity(unlocked ? 0.6 : 0.25))
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+                .frame(width: 64)
+        }
+    }
+
+    // MARK: Stats card helper
+
+    private func statsCard(
+        title: String,
+        left: (value: String, label: String),
+        right: (value: String, label: String),
+        footer: String?
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(title)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundColor(.white.opacity(0.5))
+                .padding(.horizontal, 16)
+                .padding(.top, 16)
+                .padding(.bottom, 12)
+
+            HStack(spacing: 0) {
+                StatCell(value: left.value, label: left.label)
+                Rectangle()
+                    .fill(Color.white.opacity(0.15))
+                    .frame(width: 1, height: 50)
+                StatCell(value: right.value, label: right.label)
+            }
+
+            if let footer {
+                Text(footer)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.6))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(Color.white.opacity(0.08))
+                    .cornerRadius(10)
+                    .padding(.horizontal, 12)
+                    .padding(.bottom, 14)
+                    .padding(.top, 4)
+            } else {
+                Spacer().frame(height: 16)
+            }
+        }
+        .background(Color.white.opacity(0.12))
+        .cornerRadius(20)
+        .padding(.horizontal, 20)
     }
 }
 
