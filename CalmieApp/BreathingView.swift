@@ -3,6 +3,7 @@
 
 import SwiftUI
 import UIKit
+import AVFoundation
 import CoreHaptics
 import AudioToolbox
 
@@ -82,8 +83,10 @@ struct BreathingView: View {
     @State private var countdown: Int = 0
     @State private var circleScale: CGFloat = 0.5
     @State private var activeTimer: Timer?
-    @State private var cycleCount     = 0
-    @State private var hapticEngine: CHHapticEngine?
+    @State private var cycleCount      = 0
+    @State private var hapticEngine:   CHHapticEngine?
+    @State private var audioEngine:    AVAudioEngine?
+    @State private var toneNode:       AVAudioPlayerNode?
 
     private var technique:    BreathingTechnique { techniques[selectedIndex] }
     private var currentPhase: BreathPhaseStep    { technique.phases[phaseIndex] }
@@ -126,7 +129,7 @@ struct BreathingView: View {
                 phoneLayout
             }
         }
-        .onAppear { prepareBreathHaptics() }
+        .onAppear { prepareBreathAudio(); prepareBreathHaptics() }
     }
 
     // MARK: - Layouts
@@ -346,7 +349,64 @@ struct BreathingView: View {
         withAnimation(.easeInOut(duration: 0.4)) { circleScale = 0.5 }
     }
 
-    // MARK: - Haptics
+    // MARK: - Audio tones
+
+    /// Prepares AVAudioEngine with a single player node for tone synthesis.
+    private func prepareBreathAudio() {
+        try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .default,
+                                                         options: .mixWithOthers)
+        try? AVAudioSession.sharedInstance().setActive(true)
+
+        let engine = AVAudioEngine()
+        let node   = AVAudioPlayerNode()
+        engine.attach(node)
+        let format = AVAudioFormat(standardFormatWithSampleRate: 44100, channels: 1)!
+        engine.connect(node, to: engine.mainMixerNode, format: format)
+        try? engine.start()
+        audioEngine = engine
+        toneNode    = node
+    }
+
+    /// Plays a short synthesized sine-wave tone — each phase has a distinct pitch.
+    ///   Inhale → C5  (523 Hz) bright, ascending feel
+    ///   Hold   → G4  (392 Hz) neutral, suspended
+    ///   Exhale → C4  (261 Hz) low, releasing
+    private func playPhaseSignal(for phase: BreathPhaseStep) {
+        playPhaseTone(for: phase)
+        playPhaseHaptic(for: phase)   // lightweight backup where haptics work
+    }
+
+    private func playPhaseTone(for phase: BreathPhaseStep) {
+        guard let node = toneNode, let engine = audioEngine, engine.isRunning else { return }
+
+        let frequency: Double = phase.label == "Inhale" ? 523.25   // C5
+                              : phase.label == "Exhale" ? 261.63   // C4
+                              : 392.00                              // G4  (Hold)
+
+        let sampleRate = 44100.0
+        let duration   = 0.45           // seconds — short but clear
+        let frames     = Int(sampleRate * duration)
+
+        let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1)!
+        guard let buffer = AVAudioPCMBuffer(pcmFormat: format,
+                                            frameCapacity: AVAudioFrameCount(frames)) else { return }
+        buffer.frameLength = AVAudioFrameCount(frames)
+
+        let data = buffer.floatChannelData![0]
+        for i in 0..<frames {
+            let t        = Double(i) / sampleRate
+            // Gentle envelope: 30 ms fade-in, 80 ms fade-out
+            let fadeIn   = min(1.0, t / 0.03)
+            let fadeOut  = min(1.0, (duration - t) / 0.08)
+            let envelope = fadeIn * fadeOut
+            data[i] = Float(sin(2.0 * .pi * frequency * t) * 0.55 * envelope)
+        }
+
+        node.scheduleBuffer(buffer)
+        if !node.isPlaying { node.play() }
+    }
+
+    // MARK: - Haptics (secondary — silent backup)
 
     private func prepareBreathHaptics() {
         guard CHHapticEngine.capabilitiesForHardware().supportsHaptics else { return }
@@ -361,35 +421,22 @@ struct BreathingView: View {
         }
     }
 
-    /// One strong 0.2 s buzz at the start of each breath phase.
-    /// hapticContinuous at full intensity is felt clearly through clothing.
-    private func playPhaseSignal(for phase: BreathPhaseStep) {
-        // Play a soft system click as audio cue (audible even with silent mode off via AVAudioSession)
-        AudioServicesPlaySystemSound(1104) // "Tock" — short, neutral click
-
+    private func playPhaseHaptic(for phase: BreathPhaseStep) {
         guard CHHapticEngine.capabilitiesForHardware().supportsHaptics,
               let engine = hapticEngine else {
-            // Fallback: heavy impact felt through most fabrics
-            UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
             return
         }
-
-        // hapticContinuous (sustained buzz) is much stronger than hapticTransient
-        // Inhale: round & full (sharpness 0) — like something swelling
-        // Exhale: slightly crisper (sharpness 0.3) — like a release
-        // Hold:   medium (sharpness 0.15)
         let sharpness: Float = phase.label == "Inhale" ? 0.0
                              : phase.label == "Exhale" ? 0.3
                              : 0.15
-
         let buzz = CHHapticEvent(
             eventType: .hapticContinuous,
             parameters: [
                 CHHapticEventParameter(parameterID: .hapticIntensity, value: 1.0),
                 CHHapticEventParameter(parameterID: .hapticSharpness, value: sharpness),
             ],
-            relativeTime: 0,
-            duration: 0.22      // 220 ms — short but unmistakably felt
+            relativeTime: 0, duration: 0.22
         )
         if let pattern = try? CHHapticPattern(events: [buzz], parameters: []),
            let player  = try? engine.makePlayer(with: pattern) {
