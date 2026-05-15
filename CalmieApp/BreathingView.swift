@@ -2,6 +2,7 @@
 //  CalmieApp
 
 import SwiftUI
+import UIKit
 import CoreHaptics
 import AudioToolbox
 
