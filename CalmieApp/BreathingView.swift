@@ -2,6 +2,8 @@
 //  CalmieApp
 
 import SwiftUI
+import CoreHaptics
+import AudioToolbox
 
 // MARK: - Model
 
@@ -80,6 +82,7 @@ struct BreathingView: View {
     @State private var circleScale: CGFloat = 0.5
     @State private var activeTimer: Timer?
     @State private var cycleCount     = 0
+    @State private var hapticEngine: CHHapticEngine?
 
     private var technique:    BreathingTechnique { techniques[selectedIndex] }
     private var currentPhase: BreathPhaseStep    { technique.phases[phaseIndex] }
@@ -122,6 +125,7 @@ struct BreathingView: View {
                 phoneLayout
             }
         }
+        .onAppear { prepareBreathHaptics() }
     }
 
     // MARK: - Layouts
@@ -315,15 +319,21 @@ struct BreathingView: View {
         activeTimer?.invalidate()
         var remaining = Int(currentPhase.duration)
         countdown = remaining
+        // Haptic on phase start (count = duration)
+        playBreathHaptic(for: currentPhase, isPhaseStart: true)
         activeTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { timer in
             remaining -= 1
             countdown = remaining
-            guard remaining <= 0 else { return }
-            timer.invalidate()
-            let nextIndex = (phaseIndex + 1) % technique.phases.count
-            if nextIndex == 0 { cycleCount += 1 }
-            phaseIndex = nextIndex
-            applyPhase()
+            if remaining > 0 {
+                // Haptic on each subsequent count tick
+                self.playBreathHaptic(for: self.currentPhase, isPhaseStart: false)
+            } else {
+                timer.invalidate()
+                let nextIndex = (self.phaseIndex + 1) % self.technique.phases.count
+                if nextIndex == 0 { self.cycleCount += 1 }
+                self.phaseIndex = nextIndex
+                self.applyPhase()
+            }
         }
     }
 
@@ -337,5 +347,61 @@ struct BreathingView: View {
         activeTimer = nil
         phaseIndex = 0; cycleCount = 0
         withAnimation(.easeInOut(duration: 0.4)) { circleScale = 0.5 }
+    }
+
+    // MARK: - Haptics
+
+    private func prepareBreathHaptics() {
+        guard CHHapticEngine.capabilitiesForHardware().supportsHaptics else { return }
+        hapticEngine = try? CHHapticEngine()
+        try? hapticEngine?.start()
+        hapticEngine?.resetHandler = { try? self.hapticEngine?.start() }
+        hapticEngine?.stoppedHandler = { _ in
+            DispatchQueue.main.async {
+                self.hapticEngine = try? CHHapticEngine()
+                try? self.hapticEngine?.start()
+            }
+        }
+    }
+
+    /// Fires a single haptic tick appropriate for the current breath phase.
+    /// - isPhaseStart: true → stronger "cue" pulse; false → lighter count tick
+    private func playBreathHaptic(for phase: BreathPhaseStep, isPhaseStart: Bool) {
+        // Fallback for devices without CoreHaptics
+        guard CHHapticEngine.capabilitiesForHardware().supportsHaptics,
+              let engine = hapticEngine else {
+            let style: UIImpactFeedbackGenerator.FeedbackStyle =
+                isPhaseStart ? .medium : .light
+            UIImpactFeedbackGenerator(style: style).impactOccurred()
+            return
+        }
+
+        // Intensity: inhale builds up (soft tick), exhale pushes down (sharper tick)
+        // Phase-start cue is always stronger than count ticks
+        let intensity: Float
+        let sharpness: Float
+
+        if isPhaseStart {
+            // Distinct "new phase" cue
+            intensity = phase.expanding ? 0.80 : 0.70
+            sharpness = phase.expanding ? 0.10 : 0.50
+        } else {
+            // Count tick within phase
+            intensity = phase.expanding ? 0.35 : 0.45
+            sharpness = phase.expanding ? 0.05 : 0.40
+        }
+
+        let event = CHHapticEvent(
+            eventType: .hapticTransient,
+            parameters: [
+                CHHapticEventParameter(parameterID: .hapticIntensity, value: intensity),
+                CHHapticEventParameter(parameterID: .hapticSharpness, value: sharpness),
+            ],
+            relativeTime: 0
+        )
+        if let pattern = try? CHHapticPattern(events: [event], parameters: []),
+           let player  = try? engine.makePlayer(with: pattern) {
+            try? player.start(atTime: CHHapticTimeImmediate)
+        }
     }
 }
