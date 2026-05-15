@@ -313,6 +313,8 @@ struct BreathingView: View {
     private func applyPhase() {
         countdown = Int(currentPhase.duration)
         circleScale = currentPhase.expanding ? 1.0 : 0.5
+        // Strong signal at every phase transition
+        playPhaseSignal(for: currentPhase)
         runTick()
     }
 
@@ -320,21 +322,15 @@ struct BreathingView: View {
         activeTimer?.invalidate()
         var remaining = Int(currentPhase.duration)
         countdown = remaining
-        // Haptic on phase start (count = duration)
-        playBreathHaptic(for: currentPhase, isPhaseStart: true)
         activeTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { timer in
             remaining -= 1
             countdown = remaining
-            if remaining > 0 {
-                // Haptic on each subsequent count tick
-                self.playBreathHaptic(for: self.currentPhase, isPhaseStart: false)
-            } else {
-                timer.invalidate()
-                let nextIndex = (self.phaseIndex + 1) % self.technique.phases.count
-                if nextIndex == 0 { self.cycleCount += 1 }
-                self.phaseIndex = nextIndex
-                self.applyPhase()
-            }
+            guard remaining <= 0 else { return }
+            timer.invalidate()
+            let nextIndex = (self.phaseIndex + 1) % self.technique.phases.count
+            if nextIndex == 0 { self.cycleCount += 1 }
+            self.phaseIndex = nextIndex
+            self.applyPhase()
         }
     }
 
@@ -365,42 +361,37 @@ struct BreathingView: View {
         }
     }
 
-    /// Fires a single haptic tick appropriate for the current breath phase.
-    /// - isPhaseStart: true → stronger "cue" pulse; false → lighter count tick
-    private func playBreathHaptic(for phase: BreathPhaseStep, isPhaseStart: Bool) {
-        // Fallback for devices without CoreHaptics
+    /// One strong 0.2 s buzz at the start of each breath phase.
+    /// hapticContinuous at full intensity is felt clearly through clothing.
+    private func playPhaseSignal(for phase: BreathPhaseStep) {
+        // Play a soft system click as audio cue (audible even with silent mode off via AVAudioSession)
+        AudioServicesPlaySystemSound(1104) // "Tock" — short, neutral click
+
         guard CHHapticEngine.capabilitiesForHardware().supportsHaptics,
               let engine = hapticEngine else {
-            let style: UIImpactFeedbackGenerator.FeedbackStyle =
-                isPhaseStart ? .medium : .light
-            UIImpactFeedbackGenerator(style: style).impactOccurred()
+            // Fallback: heavy impact felt through most fabrics
+            UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
             return
         }
 
-        // Intensity: inhale builds up (soft tick), exhale pushes down (sharper tick)
-        // Phase-start cue is always stronger than count ticks
-        let intensity: Float
-        let sharpness: Float
+        // hapticContinuous (sustained buzz) is much stronger than hapticTransient
+        // Inhale: round & full (sharpness 0) — like something swelling
+        // Exhale: slightly crisper (sharpness 0.3) — like a release
+        // Hold:   medium (sharpness 0.15)
+        let sharpness: Float = phase.label == "Inhale" ? 0.0
+                             : phase.label == "Exhale" ? 0.3
+                             : 0.15
 
-        if isPhaseStart {
-            // Distinct "new phase" cue
-            intensity = phase.expanding ? 0.80 : 0.70
-            sharpness = phase.expanding ? 0.10 : 0.50
-        } else {
-            // Count tick within phase
-            intensity = phase.expanding ? 0.35 : 0.45
-            sharpness = phase.expanding ? 0.05 : 0.40
-        }
-
-        let event = CHHapticEvent(
-            eventType: .hapticTransient,
+        let buzz = CHHapticEvent(
+            eventType: .hapticContinuous,
             parameters: [
-                CHHapticEventParameter(parameterID: .hapticIntensity, value: intensity),
+                CHHapticEventParameter(parameterID: .hapticIntensity, value: 1.0),
                 CHHapticEventParameter(parameterID: .hapticSharpness, value: sharpness),
             ],
-            relativeTime: 0
+            relativeTime: 0,
+            duration: 0.22      // 220 ms — short but unmistakably felt
         )
-        if let pattern = try? CHHapticPattern(events: [event], parameters: []),
+        if let pattern = try? CHHapticPattern(events: [buzz], parameters: []),
            let player  = try? engine.makePlayer(with: pattern) {
             try? player.start(atTime: CHHapticTimeImmediate)
         }
