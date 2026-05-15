@@ -66,6 +66,8 @@ struct ContentView: View {
     @State private var sessionEndDate: Date?
     @State private var pausedRemaining: TimeInterval = 0
     @State private var hapticEngine: CHHapticEngine?
+    @State private var bellEngine:   AVAudioEngine?
+    @State private var bellNode:     AVAudioPlayerNode?
 
     // MARK: Adaptive sizing
     private var isPad: Bool      { hSizeClass == .regular }
@@ -158,7 +160,7 @@ struct ContentView: View {
             }
         }
         .animation(.easeInOut(duration: 0.35), value: onboardingDone)
-        .onAppear { prepareHaptics() }
+        .onAppear { prepareHaptics(); prepareBellEngine() }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
                 if isCountingDown && !isPaused { runTimer() }
@@ -403,22 +405,59 @@ struct ContentView: View {
         playEndHaptics()
     }
 
+    // MARK: - Bell engine
+
+    private func prepareBellEngine() {
+        // Mix with any playing background music — don't interrupt it
+        try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .default,
+                                                         options: .mixWithOthers)
+        try? AVAudioSession.sharedInstance().setActive(true)
+        let engine = AVAudioEngine()
+        let node   = AVAudioPlayerNode()
+        engine.attach(node)
+        let format = AVAudioFormat(standardFormatWithSampleRate: 44100, channels: 1)!
+        engine.connect(node, to: engine.mainMixerNode, format: format)
+        try? engine.start()
+        bellEngine = engine
+        bellNode   = node
+    }
+
+    /// Three synthesized bell strikes with exponential decay — plays over any music.
     private func playBellSound() {
-        // Jeśli użytkownik doda plik bell.mp3 do projektu — użyj go
-        if let url = Bundle.main.url(forResource: "bell", withExtension: "mp3") {
-            let bell = try? AVAudioPlayer(contentsOf: url)
-            bell?.volume = 0.85
-            bell?.play()
-            return
+        let strikes: [Double] = [0.0, 0.75, 1.4]
+        for delay in strikes {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                self.strikeBell()
+            }
         }
-        // Fallback: systemowy dźwięk "Tink" (1013) — trzy razy
-        AudioServicesPlaySystemSound(1013)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
-            AudioServicesPlaySystemSound(1013)
+    }
+
+    /// Single bell strike: 528 Hz sine wave with natural exponential decay (~1.5 s).
+    private func strikeBell() {
+        guard let node = bellNode, let engine = bellEngine, engine.isRunning else { return }
+
+        let sampleRate = 44100.0
+        let duration   = 1.5           // seconds — long decay like a real bowl
+        let frequency  = 528.0         // Hz — "love frequency", warm and calming
+        let frames     = Int(sampleRate * duration)
+
+        let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1)!
+        guard let buffer = AVAudioPCMBuffer(pcmFormat: format,
+                                            frameCapacity: AVAudioFrameCount(frames)) else { return }
+        buffer.frameLength = AVAudioFrameCount(frames)
+
+        let data = buffer.floatChannelData![0]
+        for i in 0..<frames {
+            let t = Double(i) / sampleRate
+            // Fast attack (8 ms), long exponential decay
+            let attack  = min(1.0, t / 0.008)
+            let decay   = exp(-t * 3.2)          // decay rate — adjust for longer/shorter ring
+            let envelope = attack * decay
+            data[i] = Float(sin(2.0 * .pi * frequency * t) * 0.75 * envelope)
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.3) {
-            AudioServicesPlaySystemSound(1013)
-        }
+
+        node.scheduleBuffer(buffer)
+        if !node.isPlaying { node.play() }
     }
 
     private func prepareHaptics() {
