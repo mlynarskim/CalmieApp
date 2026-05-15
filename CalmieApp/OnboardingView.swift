@@ -28,8 +28,8 @@ private let pages: [OnboardingPage] = [
     OnboardingPage(
         emoji: "🫁",
         title: "Feel every breath",
-        body: "During breathing exercises, follow the expanding circle. On each count you'll feel a pulse in your hand.",
-        tip: "Tip: rest your phone face-up on your knee — the haptic feedback becomes even more noticeable and guides each breath naturally."
+        body: "During breathing exercises, follow the expanding circle. Each phase plays a distinct tone — high for inhale, mid for hold, low for exhale.",
+        tip: nil
     ),
 ]
 
