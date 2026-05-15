@@ -49,6 +49,8 @@ struct ContentView: View {
     @Environment(\.horizontalSizeClass) private var hSizeClass
     @Environment(\.verticalSizeClass)   private var vSizeClass
 
+    @AppStorage("onboardingDone") private var onboardingDone = false
+
     @State private var isCountingDown   = false
     @State private var isPaused         = false
     @State private var progress: CGFloat = 0.0
@@ -148,6 +150,14 @@ struct ContentView: View {
         .sheet(isPresented: $showStats) {
             StatsView().environment(\.managedObjectContext, viewContext)
         }
+        .overlay {
+            if !onboardingDone {
+                OnboardingView()
+                    .transition(.opacity.combined(with: .scale(scale: 0.96)))
+                    .zIndex(100)
+            }
+        }
+        .animation(.easeInOut(duration: 0.35), value: onboardingDone)
         .onAppear { prepareHaptics() }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {

@@ -15,6 +15,7 @@
 		07257BD52A4DC4A60015FED4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 07257BD42A4DC4A60015FED4 /* Assets.xcassets */; };
 		07257BDE2A4DCA290015FED4 /* Yoga Style - Chris Haugen.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 07257BDD2A4DCA290015FED4 /* Yoga Style - Chris Haugen.mp3 */; };
 		AA111BC42A4DC3920015FED4 /* StatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA111BC32A4DC3920015FED4 /* StatsView.swift */; };
+		AA0002BC2B4DC3920015FED4 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001BC2B4DC3920015FED4 /* OnboardingView.swift */; };
 		BB222BC42A4DC3920015FED4 /* BreathingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB222BC32A4DC3920015FED4 /* BreathingView.swift */; };
 		CC333BC42A4DC3920015FED4 /* ReminderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC333BC32A4DC3920015FED4 /* ReminderView.swift */; };
 /* End PBXBuildFile section */
@@ -32,6 +33,7 @@
 		AA111BC32A4DC3920015FED4 /* StatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsView.swift; sourceTree = "<group>"; };
 		BB222BC32A4DC3920015FED4 /* BreathingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BreathingView.swift; sourceTree = "<group>"; };
 		CC333BC32A4DC3920015FED4 /* ReminderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReminderView.swift; sourceTree = "<group>"; };
+		AA0001BC2B4DC3920015FED4 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		DD444BC32A4DC3920015FED4 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -73,7 +75,8 @@
 				CC333BC32A4DC3920015FED4 /* ReminderView.swift */,
 				07257BDD2A4DCA290015FED4 /* Yoga Style - Chris Haugen.mp3 */,
 				07257BC72A4DC3930015FED4 /* CalmieApp.entitlements */,
-				DD444BC32A4DC3920015FED4 /* Info.plist */,
+				AA0001BC2B4DC3920015FED4 /* OnboardingView.swift */,
+		DD444BC32A4DC3920015FED4 /* Info.plist */,
 				07257BD42A4DC4A60015FED4 /* Assets.xcassets */,
 				07257BC02A4DC3920015FED4 /* CalmieApp.xcdatamodeld */,
 				07257BC82A4DC3930015FED4 /* Preview Content */,
@@ -165,7 +168,8 @@
 				07257BC42A4DC3920015FED4 /* ContentView.swift in Sources */,
 				07257BBF2A4DC3920015FED4 /* Persistence.swift in Sources */,
 				AA111BC42A4DC3920015FED4 /* StatsView.swift in Sources */,
-				BB222BC42A4DC3920015FED4 /* BreathingView.swift in Sources */,
+				AA0002BC2B4DC3920015FED4 /* OnboardingView.swift in Sources */,
+		BB222BC42A4DC3920015FED4 /* BreathingView.swift in Sources */,
 				CC333BC42A4DC3920015FED4 /* ReminderView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
