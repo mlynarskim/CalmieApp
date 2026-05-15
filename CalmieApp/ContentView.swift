@@ -6,6 +6,8 @@ import SwiftUI
 import CoreData
 import UserNotifications
 import UIKit
+import CoreHaptics
+import AudioToolbox
 
 struct HoldButton: View {
     let systemImage: String
@@ -61,6 +63,7 @@ struct ContentView: View {
     @State private var activeTimer: Timer?
     @State private var sessionEndDate: Date?
     @State private var pausedRemaining: TimeInterval = 0
+    @State private var hapticEngine: CHHapticEngine?
 
     // MARK: Adaptive sizing
     private var isPad: Bool      { hSizeClass == .regular }
@@ -145,6 +148,7 @@ struct ContentView: View {
         .sheet(isPresented: $showStats) {
             StatsView().environment(\.managedObjectContext, viewContext)
         }
+        .onAppear { prepareHaptics() }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
                 if isCountingDown && !isPaused { runTimer() }
@@ -312,7 +316,11 @@ struct ContentView: View {
             guard remaining > 0 else {
                 timer.invalidate()
                 saveSession(duration: selectedTime)
-                resetCountdown()
+                playEndSignal()
+                // Krótkie opóźnienie — daj sygnałowi wybrzmieć przed resetem UI
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) {
+                    resetCountdown()
+                }
                 return
             }
             progress = CGFloat(remaining / countdownDuration)
@@ -357,7 +365,6 @@ struct ContentView: View {
         ripple = false
         sound?.stop()
         UIApplication.shared.isIdleTimerDisabled = false
-        UINotificationFeedbackGenerator().notificationOccurred(.success)
     }
 
     // MARK: - Notifications
@@ -376,6 +383,85 @@ struct ContentView: View {
     private func cancelEndNotification() {
         UNUserNotificationCenter.current()
             .removePendingNotificationRequests(withIdentifiers: ["session_end"])
+    }
+
+    // MARK: - End signal (dzwon medytacyjny)
+
+    /// Trzy malejące uderzenia dzwonu — haptyka + dźwięk
+    private func playEndSignal() {
+        playBellSound()
+        playEndHaptics()
+    }
+
+    private func playBellSound() {
+        // Jeśli użytkownik doda plik bell.mp3 do projektu — użyj go
+        if let url = Bundle.main.url(forResource: "bell", withExtension: "mp3") {
+            let bell = try? AVAudioPlayer(contentsOf: url)
+            bell?.volume = 0.85
+            bell?.play()
+            return
+        }
+        // Fallback: systemowy dźwięk "Tink" (1013) — trzy razy
+        AudioServicesPlaySystemSound(1013)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
+            AudioServicesPlaySystemSound(1013)
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.3) {
+            AudioServicesPlaySystemSound(1013)
+        }
+    }
+
+    private func prepareHaptics() {
+        guard CHHapticEngine.capabilitiesForHardware().supportsHaptics else { return }
+        hapticEngine = try? CHHapticEngine()
+        try? hapticEngine?.start()
+        hapticEngine?.resetHandler = { [self] in try? self.hapticEngine?.start() }
+    }
+
+    private func playEndHaptics() {
+        guard let engine = hapticEngine,
+              CHHapticEngine.capabilitiesForHardware().supportsHaptics else {
+            // Prosty fallback — trzy tapnięcia
+            let gen = UINotificationFeedbackGenerator()
+            gen.notificationOccurred(.success)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) { gen.notificationOccurred(.success) }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.3) { gen.notificationOccurred(.success) }
+            return
+        }
+        do {
+            // Trzy impulsy: mocny (dzwon), średni (echo), cichy (wybrzmiewa)
+            let events: [CHHapticEvent] = [
+                CHHapticEvent(
+                    eventType: .hapticTransient,
+                    parameters: [
+                        CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.9),
+                        CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.1)
+                    ],
+                    relativeTime: 0.0
+                ),
+                CHHapticEvent(
+                    eventType: .hapticTransient,
+                    parameters: [
+                        CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.5),
+                        CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.1)
+                    ],
+                    relativeTime: 0.7
+                ),
+                CHHapticEvent(
+                    eventType: .hapticTransient,
+                    parameters: [
+                        CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.25),
+                        CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.05)
+                    ],
+                    relativeTime: 1.3
+                ),
+            ]
+            let pattern = try CHHapticPattern(events: events, parameters: [])
+            let player  = try engine.makePlayer(with: pattern)
+            try player.start(atTime: CHHapticTimeImmediate)
+        } catch {
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+        }
     }
 
     // MARK: - Audio
